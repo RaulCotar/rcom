@@ -1,0 +1,278 @@
+#ifndef _COMMON_H_
+#define _COMMON_H_
+
+/* NUMERIC TYPEDEFS */
+
+#include <stdint.h>
+typedef uint64_t u64;
+typedef uint32_t u32;
+typedef uint16_t u16;
+typedef uint8_t	 u8;
+typedef int64_t	 i64;
+typedef int32_t	 i32;
+typedef int16_t	 i16;
+typedef int8_t	 i8;
+typedef u32		 uint;
+typedef u64		 ulong;
+typedef float	 f32;
+typedef double	 f64;
+
+/* COMPILER BULTINS */
+
+#undef  NULL
+#define NULL		nullptr
+#ifndef alloca
+#define alloca		__builtin_alloca
+#endif
+#define calloc		__builtin_calloc
+#define malloc		__builtin_malloc
+#define realloc		__builtin_realloc
+#define free		__builtin_free
+#define memcpy		__builtin_memcpy
+#define memcmp		__builtin_memcmp
+#define strcpy		__builtin_strcpy
+#define strncpy		__builtin_strncpy
+#define strdup		__builtin_strdup
+#define strndup		__builtin_strndup
+#define strlen		__builtin_strlen
+#define strcmp 		__builtin_strcmp
+#define strncmp		__builtin_strncmp
+#define abs			__builtin_abs
+
+// #ifndef unreachable
+#define unreachable __builtin_unreachable
+// #endif
+
+#define sizeof_member(_T, _M) sizeof( ((_T *)0)->_M )
+#define typeof_member(_T, _M) typeof( ((_T *)0)->_M )
+
+[[gnu::always_inline]]
+static inline void *memdup(void *const restrict p, u64 const len) {
+	return memcpy(malloc(len), p, len);
+}
+
+[[gnu::always_inline]]
+static inline void *memdupa(void *const restrict p, u64 const len) {
+	return memcpy(alloca(len), p, len);
+}
+
+[[gnu::always_inline]]
+static inline char *strdupa(char const *restrict s) {
+	u64 const len = strlen(s);
+	return strncpy(alloca(len+1), s, len);
+}
+
+[[gnu::always_inline]]
+static inline char *strndupa(char const *restrict s, u64 const len) {
+	return strncpy(alloca(len+1), s, len);
+}
+
+/* DYNAMIC ARRAYS */
+
+typedef struct arr_header {
+	u64 len, cap; // change to u32 if you want to
+} arr_header;
+
+#define dyn_arr_header(_P) ((arr_header*)(_P)-1)
+#define dyn_arr_default_cap 64
+
+inline typeof_member(arr_header, len) _arr_len(void const *ptr) {
+	return ptr ? dyn_arr_header(ptr)->len : 0;
+}
+
+inline typeof_member(arr_header, cap) _arr_cap(void const *ptr) {
+	return ptr ? dyn_arr_header(ptr)->cap : 0;
+}
+
+inline void *_arr_setcap(void *ptr, u64 n, u64 elsz) {
+	ptr = realloc(
+		ptr ? ptr-sizeof(arr_header) : 0,
+		n*elsz + sizeof(arr_header)
+	) + sizeof(arr_header);
+	dyn_arr_header(ptr)->cap = n;
+	dyn_arr_header(ptr)->len = 0;
+	return ptr;
+}
+
+inline void *_arr_capleast(void *ptr, u64 n, u64 elsz) {
+	return _arr_cap(ptr) < n ? _arr_setcap(ptr, n, elsz) : ptr;
+}
+
+inline void *_arr_setlen(void *ptr, u64 n, u64 elsz) {
+	if (n > _arr_cap(ptr))
+		ptr = _arr_setcap(ptr, n, elsz);
+	dyn_arr_header(ptr)->len = n;
+	return ptr;
+}
+
+inline void *_arr_push(void *ptr, u64 elsz, void const* elp) {
+	if (_arr_len(ptr) == _arr_cap(ptr))
+		ptr = _arr_setcap(ptr, _arr_cap(ptr)*3/2?:dyn_arr_default_cap, elsz);
+	memcpy(ptr+_arr_len(ptr)*elsz, elp, elsz);
+	dyn_arr_header(ptr)->len++;
+	return ptr;
+}
+
+inline void *_arr_pop(void *ptr) {
+	if (_arr_len(ptr))
+		dyn_arr_header(ptr)->len--;
+	return ptr;
+}
+
+inline void *_arr_init(u64 n, u64 elsz) {
+	return _arr_setcap(NULL, n, elsz);
+}
+
+inline void *_arr_index(void *ptr, i64 n, u64 elsz) {
+	return ptr + (n<0 ? _arr_len(ptr)+n : n) * elsz;
+}
+
+inline void _arr_free(void *ptr) {
+	free(ptr-sizeof(arr_header));
+}
+
+inline void *_arr_concat(void *a, void *b, u64 elsz) {
+	u64 const dest_len = _arr_len(a) + _arr_len(b);
+	if (_arr_cap(a) >= dest_len) {
+		memcpy(a+elsz*_arr_len(a), b, elsz*_arr_len(b));
+		_arr_free(b);
+		return a;
+	}
+	else if (_arr_cap(b) >= dest_len) {
+		memcpy(a+elsz*_arr_len(b), a, elsz*_arr_len(a));
+		_arr_free(a);
+		return b;
+	}
+	else {
+		void *dest = _arr_setcap(NULL, dest_len, elsz);
+		_arr_free(a);
+		_arr_free(b);
+		return dest;
+	}
+}
+
+#define arr_len _arr_len
+#define arr_cap _arr_cap
+#define arr_setlen(P, N) _arr_setlen((P), (N), sizeof(*(P)))
+#define arr_setcap(P, N) _arr_setcap((P), (N), sizeof(*(P)))
+#define arr_capleast(P, N) (arr_len(P) < (N) ? arr_setcap((P), (N)) : (P))
+#define arr_push(P, E) ({\
+	if (arr_len(P) == arr_cap(P))\
+		(P) = arr_setcap((P), arr_cap(P)*3/2 ?: dyn_arr_default_cap);\
+	(P)[dyn_arr_header(P)->len++] = (E);\
+	(P);\
+})
+#define arr_pop(P) ({\
+	if (arr_len(P))\
+		dyn_arr_header(P)->len--;\
+	(P);\
+})
+#define arr_init(T, N) _arr_setcap(NULL, (N), sizeof(T))
+#define arr_index(P, N) ((N) < 0 ? (P)+arr_len(P)+(N) : (P)+(N))
+#define arr_free(P) (free(((void)(P))-sizeof(arr_header)))
+#define arr_concat(A, B) _arr_concat((A), (B), sizeof(*(A)))
+
+/* STRING VIEW */
+
+typedef struct strview {
+	char *ptr;
+	u32 len;
+} stringv;
+
+#define strv_null ((stringv){NULL,0})
+#define strv_from(_C_STR) ((stringv){(_C_STR), strlen((_C_STR))})
+
+[[gnu::always_inline]]
+static inline int strv_cmp(stringv a, stringv b) {
+	if (a.len != b.len)
+		return 1;
+	return strncmp(a.ptr, b.ptr, a.len);
+}
+
+[[gnu::always_inline]]
+static inline stringv strv_dup(stringv s) {
+	return (stringv){memcpy(malloc(s.len), s.ptr, s.len), s.len};
+}
+
+[[gnu::always_inline]]
+static inline stringv strv_dupa(stringv s) {
+	return (stringv){strndupa(s.ptr, s.len), s.len};
+}
+
+[[gnu::always_inline]]
+static inline char *strv_cstrm(stringv str) {
+	return memcpy(calloc(str.len+1, 1), str.ptr, str.len);
+}
+
+[[gnu::always_inline]]
+static inline char *strv_cstra(stringv str) {
+	return strndupa(str.ptr, str.len);
+}
+
+void strv_print(stringv const s, void *file);
+void strv_dprint(stringv const s, void *file);
+
+/* HASH FUNCTIONS */
+
+[[gnu::nothrow, gnu::pure]]
+inline u32 fnv1a_32(char const *restrict str) {
+	u32 hash = 2166136261U;
+	while (*str)
+		hash = (hash ^ *str++) * 16777619U;
+	return hash;
+}
+
+[[gnu::nothrow, gnu::pure]]
+inline u64 fnv1a_64(char const *restrict str) {
+	u64 hash = 0xcbf29ce484222325UL;
+	while (*str)
+		hash = (hash ^ *str++) * 0x100000001B3UL;
+	return hash;
+}
+
+#define hash32 fnv1a_32
+#define hash64 fnv1a_64
+
+/* CHAR TYPES */
+
+[[gnu::const, maybe_unused]]
+static inline bool is_space(char const c) {
+	switch (c) {
+		case 0:
+		case '\t':
+		case '\n':
+		case '\v':
+		case '\f':
+		case '\r':
+		case ' ': return true;
+		default:  return false;
+	}
+}
+
+[[gnu::const, maybe_unused]]
+static inline bool is_num(char const c) {
+	return (c >= '0' && c <= '9');
+}
+
+[[gnu::const, maybe_unused]]
+static inline bool is_alpha(char const c) {
+	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
+
+[[gnu::const, maybe_unused]]
+static inline bool is_alnum(char const c) {
+	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
+}
+
+[[gnu::const, maybe_unused]]
+static inline bool is_idchr(char const c) {
+	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_';
+}
+
+/* STACK TRACE */
+
+#ifndef NDEBUG
+void stacktrace(void);
+#endif
+
+#endif /* _COMMON_H_ */

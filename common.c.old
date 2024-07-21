@@ -1,0 +1,46 @@
+#include <stdio.h>
+#include "common.h"
+
+extern inline typeof_member(arr_header, len) _arr_len(void const*);
+extern inline typeof_member(arr_header, cap) _arr_cap(void const*);
+
+extern inline void *_arr_setlen(void*, u64, u64);
+extern inline void *_arr_setcap(void*, u64, u64);
+extern inline void *_arr_capleast(void *ptr, u64 n, u64 elsz);
+
+extern inline void *_arr_push(void *ptr, u64 elsz, void const* elp);
+extern inline void *_arr_pop(void *ptr);
+
+inline void *_arr_init(u64 n, u64 elsz);
+extern inline void *_arr_index(void *ptr, i64 n, u64 elsz);
+extern inline void _arr_free(void *ptr);
+
+void strv_print(stringv const s, void *f) {
+	for (uint_fast32_t i=0; i<s.len; i++)
+		putc(s.ptr[i], f);
+}
+
+void strv_dprint(stringv const s, void *f) {
+	fprintf(f, "{@%p + %u -> \"", s.ptr, s.len);
+	fflush(stdout);
+	for (uint_fast32_t i=0; i<s.len; i++)
+		putc(s.ptr[i], f), fflush(stdout);
+	fputs("\"}", f);
+	fflush(stdout);
+}
+
+[[gnu::nothrow, gnu::pure]]
+u32 fnv1a_32(char const *restrict str);
+
+[[gnu::nothrow, gnu::pure]]
+u64 fnv1a_64(char const *restrict str);
+
+#ifndef NDEBUG
+#include <execinfo.h>
+void stacktrace(void) {
+	void *tracebuf = malloc(sizeof(void*) * 512);
+	int n = backtrace(tracebuf, 512);
+	backtrace_symbols_fd(tracebuf, n, 2);
+	free(tracebuf);
+}
+#endif
