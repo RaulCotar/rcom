@@ -6,7 +6,7 @@
 -Wno-attributes
 
 ## MACROS
--DVERSION="0.0.0-dummy"
+-D_RCOM_VERSION="0.0.0-dummy"
 
 ## DEBUG OPTIONS
 -fno-omit-frame-pointer
