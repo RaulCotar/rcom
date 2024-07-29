@@ -32,7 +32,7 @@ build/librcom.a: $(patsubst %.c,build/%.o,$(C_FILES)) | build
 	ar rcs $@ $^
 
 build/%.o: %.c $(H_FILES) compile_flags.txt version.txt | build
-	$(CC) $(CFLAGS) -c $(C_FILES) -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 build/%.log: build/%.test
 	(./$< > $@) || (echo -e "\e[31m$< failed with exit code $$?\e[39m" && false)
