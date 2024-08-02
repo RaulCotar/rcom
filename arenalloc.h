@@ -31,6 +31,34 @@ void *arena_alloc(arenalloc_t *arena, u64 size, enum arenalloc_flags flags);
 /// Free memory, starting from the last allocated byte. The size is capped at the current allocated size. Returns the new allocation head or NULL for uninitilized arenas.
 void *arena_free(arenalloc_t *arena, u64 size);
 
+#ifdef ARENALLOC_HOOKS
+	extern void hook_pre_arena_new(u64 size, enum arenalloc_flags flags);
+	extern arenalloc_t hook_post_arena_new(arenalloc_t new_arena);
+
+	extern void hook_pre_arena_resize(arenalloc_t *arena, u64 size, enum arenalloc_flags flags);
+	extern int hook_post_arena_resize(arenalloc_t *new_arena, u64 size, enum arenalloc_flags flags);
+
+	extern void hook_pre_arena_release(arenalloc_t *arena);
+	extern int hook_post_arena_release(void);
+
+	extern void hook_pre_arena_alloc(arenalloc_t *arena, u64 size, enum arenalloc_flags flags);
+	extern void *hook_post_arena_alloc(arenalloc_t *arena, u64 size, enum arenalloc_flags flags, void *alloc);
+
+	extern void hook_pre_arena_free(arenalloc_t *arena, u64 size);
+	extern void *hook_post_arena_free(arenalloc_t *arena);
+#else
+	#define hook_pre_arena_new(...)
+	#define hook_post_arena_new(ARENA) ARENA
+	#define hook_pre_arena_resize(...)
+	#define hook_post_arena_resize(...) 0
+	#define hook_pre_arena_release(...)
+	#define hook_post_arena_release(...) 0
+	#define hook_pre_arena_alloc(...)
+	#define hook_post_arena_alloc(ARENA, SIZE, FLAGS, PTR) PTR
+	#define hook_pre_arena_free(...)
+	#define hook_post_arena_free(PTR) PTR
+#endif
+
 #ifndef NDEBUG
 void arena_print(arenalloc_t arena, char const *msg);
 #endif

@@ -8,6 +8,7 @@
 #define PAGE_SIZE 4096 // TODO: un-hardcode
 
 arenalloc_t arena_new(u64 size, enum arenalloc_flags flags) {
+	hook_pre_arena_new(size, flags);
 	arenalloc_t arena = {NULL, NULL, NULL};
 	if (!size)
 		return arena;
@@ -21,10 +22,11 @@ arenalloc_t arena_new(u64 size, enum arenalloc_flags flags) {
 		arena.end = arena.base + size;
 		arena.head = arena.base;
 	}
-	return arena;
+	return hook_post_arena_new(arena);
 }
 
 int arena_resize(arenalloc_t *arena, u64 size, enum arenalloc_flags flags) {
+	hook_pre_arena_resize(arena, size, flags);
 	if (!size)
 		return arena_release(arena);
 	if (!(arena->end - arena->base)) {
@@ -40,19 +42,21 @@ int arena_resize(arenalloc_t *arena, u64 size, enum arenalloc_flags flags) {
 	arena->end = tmp + size;
 	arena->head = tmp + (arena->head - arena->base);
 	arena->base = tmp;
-	return 0;
+	return hook_post_arena_resize(arena, size, flags);
 }
 
 int arena_release(arenalloc_t *arena) {
+	hook_pre_arena_release(arena);
 	if (arena->end - arena->base) {
 		int const x = munmap(arena->base, arena->end - arena->base);
 		if (x) return x;
 	}
 	arena->base = (arena->end = (arena->head = NULL));
-	return 0;
+	return hook_post_arena_release();
 }
 
 void *arena_alloc(arenalloc_t *arena, u64 size, enum arenalloc_flags flags) {
+	hook_pre_arena_alloc(arena, size, flags);
 	assert(arena->end - arena->base);
 	if (!size)
 		return NULL;
@@ -60,17 +64,18 @@ void *arena_alloc(arenalloc_t *arena, u64 size, enum arenalloc_flags flags) {
 		if (arena_resize(arena, arena->head - arena->base + size, flags & ARENALLOC_MAY_MOVE))
 			return NULL;
 	arena->head += size;
-	return arena->head - size;
+	return hook_post_arena_alloc(arena, size, flags, arena->head - size);
 }
 
 void *arena_free(arenalloc_t *arena, u64 size) {
+	hook_pre_arena_free(arena, size);
 	if (!(arena->end - arena->base))
 		return NULL;
 	if ((i64)size >= arena->head - arena->base)
 		arena->head = arena->base;
 	else
 		arena->head -= size;
-	return arena->head;
+	return hook_post_arena_free(arena->head);
 }
 
 #ifndef NDEBUG

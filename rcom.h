@@ -5,5 +5,6 @@
 #include <rcom/types.h>
 #include <rcom/builtins.h>
 #include <rcom/debug.h>
+#include <rcom/arenalloc.h>
 
 #endif /* _RCOM_H_ */
