@@ -1,0 +1,10 @@
+-std=gnu23
+-Wall
+-Wextra
+-Wno-gnu-zero-variadic-macro-arguments
+-Wno-gnu-pointer-arith
+-fsanitize=undefined
+-fsanitize=address
+-Og
+-ggdb3
+-Isrc
