@@ -1,12 +1,6 @@
 #ifndef _ARENALLOC_H_
 #define _ARENALLOC_H_
 
-#include <unistd.h> // mremap, getpagesize
-#ifndef NDEBUD // arenaDebugPrint needs these
-	#include <stdio.h>
-	#include <string.h>
-#endif
-#include "mman.h"
 #include "types.h"
 
 typedef struct arena_t {
@@ -58,8 +52,14 @@ void arenaUpdatePageSizes();
 void arenaDebugPrint(arena_t const *arena);
 #endif // ifndef NDEBUG
 
-#define ARENALLOC_IMPL
 #ifdef ARENALLOC_IMPL
+
+#include <unistd.h> // mremap, getpagesize
+#ifndef NDEBUD // arenaDebugPrint needs these
+	#include <stdio.h>
+	#include <string.h>
+#endif
+#include "mman.h"
 
 u64 const _arenaPageSizes[] = {4096};
 
