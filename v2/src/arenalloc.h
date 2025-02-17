@@ -61,7 +61,7 @@ void arenaDebugPrint(arena_t const *arena);
 #endif
 #include "mman.h"
 
-u64 const _arenaPageSizes[] = {4096};
+u64 _arenaPageSizes[] = {4096};
 
 void *arenaAlloc(arena_t *arena, u64 size) {
 	if (size > (u64)(arena->top - arena->head))
@@ -153,7 +153,7 @@ u64 arenaGetUsedSize(arena_t const *arena) {
 }
 
 void arenaUpdatePageSizes() {
-	((u64*)_arenaPageSizes)[0] = getpagesize();
+	((u64*)_arenaPageSizes)[0] = sysconf(_SC_PAGE_SIZE);
 }
 
 #ifndef NDEBUG
@@ -161,7 +161,7 @@ void arenaDebugPrint(arena_t const *a) {
 	printf("%14p - %14p - %14p\n", a->base, a->head, a->top);
 	if (a->base == NULL)
 		return;
-	u32 constexpr width = 14 * 3 + 6 - 12;
+	constexpr u32 width = 14 * 3 + 6 - 12;
 	u32 l1 = ((a->head - a->base) * width) / (a->top - a->base);
 	u32 l2 = width + 11 + !l1 - printf("\e[1;30;%sm%-*lu", l1 ? "47" : "100", l1, a->head - a->base);
 	printf("\e[97;100m%*lu\e[0m /%9lu\n", l2, a->top - a->head, a->top - a->base);

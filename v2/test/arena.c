@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <unistd.h>
-#include "debug.h"
 #define ARENALLOC_IMPL
 #include "arenalloc.h"
 

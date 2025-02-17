@@ -1,4 +1,4 @@
--std=gnu23
+-std=c23
 -Wall
 -Wextra
 -Wno-gnu-zero-variadic-macro-arguments
