@@ -1,63 +1,54 @@
-MAKEFLAGS += --no-builtin-rules --no-builtin-variables
-C_FILES := $(wildcard *.c)
-H_FILES := $(wildcard *.h)
-TESTS := $(patsubst test/%.c,build/%.log,$(wildcard test/*.c))
-LIB_DIR := /usr/local/lib
-H_DIR := /usr/local/include/rcom
-VERSION := $(file < version.txt)
-VMAJOR := $(firstword $(subst ., ,$(VERSION)))
-CC ?= clang
-CFLAGS := $(shell grep '^[^#]' compile_flags.txt) -U_RCOM_VERSION -D_RCOM_VERSION=\"$(VERSION)\"
+CFLAGS := $(shell grep '^[^#]' compile_flags.txt)
+HEADERS := $(wildcard src/*.h)
+TESTS := $(patsubst test/%.c,bin/%.test,$(wildcard test/*.c))
 
-.PHONY: all install heads libs test
-all: install test
-install: heads libs
-heads: $(patsubst %,$(H_DIR)/%,$(H_FILES))
-libs: $(LIB_DIR)/librcom.a $(LIB_DIR)/librcom.so
+INST_PREFIX ?= /usr/local
+HEADER_DIR := $(INST_PREFIX)/include/rcom
+LIB_DIR := $(INST_PREFIX)/lib
+
+INSTALL_TGTS := $(patsubst src/%.h,$(HEADER_DIR)/%.h,$(HEADERS)) $(INST_PREFIX)/lib/pkgconfig/rcom.pc
+
+.ONESHELL:
+.PHONY: help test install uninstall list clean
+
+help:
+	@echo 'RCOM make options:'
+	@echo -e '\e[1;37mTargets:\e[0m'
+	@echo -e '  \e[32mhelp\t\t\e[37mdisplay this help text\e[0m'
+	@echo -e '  \e[32mtest\t\t\e[37mcompile and run the test files\e[0m'
+	@echo -e '  \e[32minstall\t\e[37minstall the header files\e[0m'
+	@echo -e '  \e[32muninstall\t\e[37muninstall all the related files\e[0m'
+	@echo -e '  \e[32mlist\t\t\e[37mlist all files to be installed\e[0m'
+	@echo -e '  \e[32mclean\t\t\e[37mremove the ./bin directory\e[0m'
+	@echo -e '\e[1;37mVariables:\e[0m'
+	@echo -e '  \e[36mINST_PREFIX\t\e[37minstall dir prefix (current: "$(INST_PREFIX)")\e[0m'
+	@echo -e '\e[1;37mEnv vars:\e[0m'
+	@echo -e "  \e[35mCC\t\t\e[37mC compiler (current: \"$$CC\")\e[0m"
+
 test: $(TESTS)
 
-$(H_DIR)/%.h: %.h | $(H_DIR)
-	sudo cp $< $@
+install: $(INSTALL_TGTS)
 
-$(H_DIR):
-	sudo mkdir -v $@
+uninstall:
+	sudo rm -rfv $(INST_PREFIX)/include/rcom $(INST_PREFIX)/lib/pkgconfig/rcom.pc
 
-$(LIB_DIR)/%: build/%
-	sudo cp $< $@
+list:
+	@echo $(INSTALL_TGTS)
 
-build/librcom.so: $(C_FILES) $(H_FILES) compile_flags.txt version.txt | build
-	$(CC) $(CFLAGS) -fpic -shared -Wl,-soname,librcom.so $(C_FILES) -o $@
-
-build/librcom.a: $(patsubst %.c,build/%.o,$(C_FILES)) | build
-	ar rcs $@ $^
-
-build/%.o: %.c $(H_FILES) compile_flags.txt version.txt | build
-	$(CC) $(CFLAGS) -c $< -o $@
-
-build/%.log: build/%.test
-	(./$< > $@) || (echo -e "\e[31m$< failed with exit code $$?\e[39m" && false)
-
-.SECONDARY: $(TESTS:.log=.test)
-build/%.test: test/%.c $(patsubst %,$(H_DIR)/%,$(H_FILES)) $(LIB_DIR)/librcom.a $(LIB_DIR)/librcom.so | build
-	$(shell head -n1 $< | tail -c+3) $< -o $@
-
-build:
-	mkdir $@
-
-.PHONY: clean
 clean:
-	rm -rf build
-	sudo rm -rfIv $(LIB_DIR)/librcom.* $(H_DIR)
+	rm -rf bin
 
-.PHONY: help
-help:
-	@echo -e '\e[1mRcom $(VERSION)\e[22m'
-	@echo "Make targets and variables:"
-	@echo -e "all\t\tbuild, install, and run tests (default target)"
-	@echo -e "install\t\tbuild and copy everything to target directories (libs and headers)"
-	@echo -e "heads\t\tcopy the header files to their target directory"
-	@echo -e "libs\t\tbuild and copy the library files to their target directory"
-	@echo -e "test\t\tbuild and run the tests"
-	@echo -e "clean\t\tremove headers, libs and the build directory"
-	@echo -e "\$$H_DIR\t\theader install directory"
-	@echo -e "\$$LIB_DIR\tlibrary install directory"
+bin/%.test: test/%.c | bin
+	$$CC $$(grep '^[^#]' compile_flags.txt) $^ -o $@ && ./$@
+
+$(INST_PREFIX)/include/rcom/%.h: src/%.h | $(INST_PREFIX)/include/rcom
+	sudo cp $< $@
+
+$(INST_PREFIX)/lib/pkgconfig/rcom.pc: src/rcom.pc | $(INST_PREFIX)/lib/pkgconfig
+	sed 's/INST_PREFIX/$(subst /,\/,$(INST_PREFIX))/' src/rcom.pc > bin/rcom.pc.temp && sudo mv bin/rcom.pc.temp $@
+
+$(INST_PREFIX)/include/rcom $(INST_PREFIX)/lib/pkgconfig:
+	sudo mkdir -p $@
+
+bin:
+	mkdir $@
