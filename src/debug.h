@@ -1,5 +1,5 @@
-#ifndef _DEBUG_H_
-#define _DEBUG_H_
+#ifndef _RCOM_DEBUG_H_
+#define _RCOM_DEBUG_H_
 
 #ifndef NDEBUG
 
@@ -7,7 +7,7 @@
 
 void stacktrace(void);
 
-#ifndef DEBUG_IMPL
+#ifndef RCOM_DEBUG_IMPL
 
 #include <execinfo.h>
 #include <unistd.h>
@@ -18,6 +18,6 @@ void stacktrace(void) {
 	backtrace_symbols_fd(tracebuf, n, 2);
 }
 
-#endif /* DEBUG_IMPL */
+#endif /* RCOM_DEBUG_IMPL */
 #endif /* NDEBUG */
-#endif /* _DEBUG_H_ */
+#endif /* _RCOM_DEBUG_H_ */

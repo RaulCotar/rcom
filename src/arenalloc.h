@@ -1,5 +1,5 @@
-#ifndef _ARENALLOC_H_
-#define _ARENALLOC_H_
+#ifndef _RCOM_ARENALLOC_H_
+#define _RCOM_ARENALLOC_H_
 
 #include "types.h"
 
@@ -52,7 +52,7 @@ void arenaUpdatePageSizes();
 void arenaDebugPrint(arena_t const *arena);
 #endif // ifndef NDEBUG
 
-#ifdef ARENALLOC_IMPL
+#ifdef RCOM_ARENALLOC_IMPL
 
 #include <unistd.h> // mremap, getpagesize
 #ifndef NDEBUD // arenaDebugPrint needs these
@@ -168,5 +168,5 @@ void arenaDebugPrint(arena_t const *a) {
 }
 #endif // ifndef NDEBUG
 
-#endif // ifdef ARENALLOC_IMPL
-#endif // ifndef _ARENALLOC_H_
+#endif // ifdef RCOM_ARENALLOC_IMPL
+#endif // ifndef _RCOM_ARENALLOC_H_

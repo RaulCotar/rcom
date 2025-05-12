@@ -15,3 +15,12 @@ The typedefs I usually use in my code.
 ## [debug.h](src/debug.h)
 
 Stacktrace printing function.
+
+# Changelog
+
+### v2.1.0
+- rename include guard macros
+- mman: `#undef __USE_GNU` after `<sys/mman.h>` import
+
+### v2.0.0
+Complete rewrite of the library, mainly for arenalloc.

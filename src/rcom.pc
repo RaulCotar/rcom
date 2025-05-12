@@ -4,5 +4,5 @@ includedir=${prefix}/include
 Name: rcom
 Description: Raul's common header-only library.
 URL: https://github.com/raulcotar/rcom
-Version: 2.0.0
+Version: 2.1.0
 Cflags: -I${includedir}

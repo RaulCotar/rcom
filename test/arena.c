@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
-#define ARENALLOC_IMPL
+#define RCOM_ARENALLOC_IMPL
 #include "arenalloc.h"
 
 int main() {
