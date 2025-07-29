@@ -24,4 +24,6 @@ typedef __float128 f128;
 #define NULL ((void*)0)
 #endif
 
+#define bitsizeof(_EXPR) (sizeof((_EXPR))*8U)
+
 #endif /* _RCOM_TYPES_H_ */
