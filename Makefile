@@ -44,7 +44,7 @@ bin/%.test: test/%.c | bin
 $(INST_PREFIX)/include/rcom/%.h: src/%.h | $(INST_PREFIX)/include/rcom
 	sudo cp $< $@
 
-$(INST_PREFIX)/lib/pkgconfig/rcom.pc: src/rcom.pc | $(INST_PREFIX)/lib/pkgconfig
+$(INST_PREFIX)/lib/pkgconfig/rcom.pc: src/rcom.pc | $(INST_PREFIX)/lib/pkgconfig bin
 	sed 's/INST_PREFIX/$(subst /,\/,$(INST_PREFIX))/' src/rcom.pc > bin/rcom.pc.temp && sudo mv bin/rcom.pc.temp $@
 
 $(INST_PREFIX)/include/rcom $(INST_PREFIX)/lib/pkgconfig:
